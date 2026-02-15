@@ -328,12 +328,25 @@ export const getMonthlyAttendanceReport = async (req, res) => {
       .lineTo(550, 750)
       .stroke();
 
+    /* ====== IST TIME ====== */
+    const istDate = new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true
+    });
+
     doc.fontSize(9).text(
-      `Generated on: ${new Date().toLocaleString()}`,
+      `Generated on: ${istDate} (IST)`,
       50,
       760,
       { align: "left" }
     );
+
 
     doc.text(
       "This is a system generated document.",
