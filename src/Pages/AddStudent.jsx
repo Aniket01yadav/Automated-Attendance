@@ -372,25 +372,25 @@ const AddStudentPage = () => {
   };
 
   // ================= TOGGLE ATTENDANCE =================
-    const toggleAttendance = async (studentId) => {
-      try {
-        const today = new Date().toISOString().split("T")[0];
+  const toggleAttendance = async (studentId) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
 
-        await axios.put(
-          `https://inclass-dnhc.onrender.com/api/attendance/toggle/${studentId}`,
-          { classId: activeClassId, date: today },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+      await axios.put(
+        `https://inclass-dnhc.onrender.com/api/attendance/toggle/${studentId}`,
+        { classId: activeClassId, date: today },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-        // ✅ always refresh from server (no local flip logic)
-        await fetchStudents(activeClassId);
+      // ✅ always refresh from server (no local flip logic)
+      await fetchStudents(activeClassId);
 
-        toast.success("Attendance updated!");
-      } catch (err) {
-        console.error("Attendance toggle error:", err);
-        toast.error(err.response?.data?.error || "Failed to update attendance!");
-      }
-    };
+      toast.success("Attendance updated!");
+    } catch (err) {
+      console.error("Attendance toggle error:", err);
+      toast.error(err.response?.data?.error || "Failed to update attendance!");
+    }
+  };
 
 
   // ================= SEARCH =================
@@ -429,6 +429,40 @@ const AddStudentPage = () => {
     ));
   };
 
+  // ================= DOWNLOAD MONTHLY REPORT =================
+  const downloadMonthlyReport = async (studentId, month, year) => {
+    if (!month || !year) {
+      toast.error("Please select month and year");
+      return;
+    }
+
+    try {
+      const response = await axios.get(
+        `https://inclass-dnhc.onrender.com/api/attendance/student/${studentId}/monthly-report?month=${month}&year=${year}`,
+        {
+          responseType: "blob",
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Attendance_${month}_${year}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+    } catch (err) {
+      console.error("Download error:", err);
+      toast.error("Failed to download report");
+    }
+  };
+
+
+
   // ================= CLASS CHANGE HANDLER =================
   const handleClassChange = async (newClassId) => {
     console.log('🔄 Changing class to:', newClassId);
@@ -464,31 +498,31 @@ const AddStudentPage = () => {
   };
 
   // ================= CHANGE PASSWORD =================
- const handlePasswordUpdate = async () => {
-  if (!passwords.oldPassword || !passwords.newPassword) {
-    return toast.error("Both fields are required!");
-  }
+  const handlePasswordUpdate = async () => {
+    if (!passwords.oldPassword || !passwords.newPassword) {
+      return toast.error("Both fields are required!");
+    }
 
-  try {
-    const res = await axios.put(
-      "https://inclass-dnhc.onrender.com/api/auth/change-password",
-      {
-        oldPassword: passwords.oldPassword,
-        newPassword: passwords.newPassword
-      },
-      {
-        headers: { Authorization: `Bearer ${token}` }
-      }
-    );
+    try {
+      const res = await axios.put(
+        "https://inclass-dnhc.onrender.com/api/auth/change-password",
+        {
+          oldPassword: passwords.oldPassword,
+          newPassword: passwords.newPassword
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
 
-    toast.success(res.data.message || "Password changed successfully!");
-    setPasswords({ oldPassword: "", newPassword: "" });
-    setChangePass(false);
-  } catch (err) {
-    const msg = err.response?.data?.error || "Password change failed!";
-    toast.error(msg);
-  }
-};
+      toast.success(res.data.message || "Password changed successfully!");
+      setPasswords({ oldPassword: "", newPassword: "" });
+      setChangePass(false);
+    } catch (err) {
+      const msg = err.response?.data?.error || "Password change failed!";
+      toast.error(msg);
+    }
+  };
 
 
 
@@ -1151,12 +1185,14 @@ const AddStudentPage = () => {
         <StudentAttendanceModal
           student={attendanceStudent}
           token={token}
+          onDownloadReport={downloadMonthlyReport}
           onClose={() => {
             setShowAttendance(false);
             setAttendanceStudent(null);
           }}
         />
       )}
+
 
       {openScanner && scanClassId && (
         <ClassAttendanceScanner

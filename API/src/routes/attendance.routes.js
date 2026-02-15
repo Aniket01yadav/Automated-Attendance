@@ -1,5 +1,6 @@
 import express from "express";
 import protect from "../middleware/auth.middleware.js";
+import { getMonthlyAttendanceReport } from "../controllers/attendance.controller.js";
 
 import {
   toggleAttendance,
@@ -29,6 +30,13 @@ router.get(
   "/class/:classId",
   protect,
   getAttendanceByClass
+);
+
+/* monthly PDF report */
+router.get(
+  "/student/:studentId/monthly-report",
+  protect,
+  getMonthlyAttendanceReport
 );
 
 /* student attendance history */
