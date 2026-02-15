@@ -431,18 +431,20 @@ const AddStudentPage = () => {
 
   // ================= DOWNLOAD MONTHLY REPORT =================
   const downloadMonthlyReport = async (studentId, month, year) => {
-    if (!month || !year) {
-      toast.error("Please select month and year");
-      return;
-    }
-
     try {
+      const freshToken = localStorage.getItem("token");
+
+      if (!freshToken) {
+        toast.error("Session expired. Please login again.");
+        return;
+      }
+
       const response = await axios.get(
         `https://inclass-dnhc.onrender.com/api/attendance/student/${studentId}/monthly-report?month=${month}&year=${year}`,
         {
           responseType: "blob",
           headers: {
-            Authorization: `Bearer ${token}`
+            Authorization: `Bearer ${freshToken}`
           }
         }
       );
@@ -456,10 +458,13 @@ const AddStudentPage = () => {
       link.remove();
 
     } catch (err) {
-      console.error("Download error:", err);
+      console.error("PDF Error:", err);
+      console.log("Status:", err.response?.status);
       toast.error("Failed to download report");
     }
   };
+
+
 
 
 

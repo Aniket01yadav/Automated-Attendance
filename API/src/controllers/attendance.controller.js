@@ -1,6 +1,9 @@
 import Attendance from "../models/attendance.model.js";
 import mongoose from "mongoose";
 import PDFDocument from "pdfkit";
+import Student from "../models/student.model.js";
+import Class from "../models/class.model.js";
+
 
 /* ===============================
    MARK / TOGGLE ATTENDANCE (manual button)
@@ -181,57 +184,120 @@ export const getMonthlyAttendanceReport = async (req, res) => {
     const endDate = new Date(year, month, 0);
     endDate.setHours(23, 59, 59, 999);
 
+    // Fetch student
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Fetch class
+    const classData = await Class.findById(student.classId);
+
+    // Fetch attendance
     const records = await Attendance.find({
-      studentId: new mongoose.Types.ObjectId(studentId),
-      schoolId: new mongoose.Types.ObjectId(resolvedSchoolId),
+      studentId,
+      schoolId: resolvedSchoolId,
       date: { $gte: startDate, $lte: endDate }
     }).sort({ date: 1 });
 
     const totalDays = records.length;
     const presentDays = records.filter(r => r.status === "Present").length;
     const absentDays = totalDays - presentDays;
+    const percentage =
+      totalDays > 0
+        ? ((presentDays / totalDays) * 100).toFixed(2)
+        : 0;
 
     // Create PDF
-    const doc = new PDFDocument({ margin: 40 });
+    const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename=Monthly_Attendance_${month}_${year}.pdf`
+      `attachment; filename=Attendance_${month}_${year}.pdf`
     );
     res.setHeader("Content-Type", "application/pdf");
 
     doc.pipe(res);
 
-    // Header
-    doc.fontSize(18).text("Monthly Attendance Report", {
-      align: "center"
-    });
+    /* ================= HEADER ================= */
+    doc
+      .fontSize(18)
+      .text(req.user.schoolName || "School Name", {
+        align: "center"
+      });
 
-    doc.moveDown();
-    doc.fontSize(12).text(`Student ID: ${studentId}`);
+    doc.moveDown(0.5);
+
+    doc
+      .fontSize(16)
+      .text("Monthly Attendance Report", {
+        align: "center"
+      });
+
+    doc.moveDown(1);
+
+    /* ================= STUDENT INFO ================= */
+    doc.fontSize(12);
+    doc.text(`Student Name: ${student.name}`);
+    doc.text(`Roll Number: ${student.rollNo}`);
+    doc.text(
+      `Class: ${classData?.className || ""} ${classData?.section || ""}`
+    );
     doc.text(`Month: ${month}/${year}`);
     doc.moveDown();
 
-    // Summary Section
-    doc.fontSize(14).text("Summary:");
-    doc.fontSize(12).text(`Total Records: ${totalDays}`);
-    doc.text(`Present: ${presentDays}`);
-    doc.text(`Absent: ${absentDays}`);
-
-    doc.moveDown();
-    doc.fontSize(14).text("Daily Records:");
+    /* ================= SUMMARY ================= */
+    doc.fontSize(14).text("Summary", { underline: true });
     doc.moveDown(0.5);
 
-    // Table-like structure
-    records.forEach((record, index) => {
-      doc.fontSize(12).text(
-        `${index + 1}. ${record.date.toDateString()}  -  ${record.status}`
+    doc.fontSize(12);
+    doc.text(`Total Days: ${totalDays}`);
+    doc.text(`Present: ${presentDays}`);
+    doc.text(`Absent: ${absentDays}`);
+    doc.text(`Attendance Percentage: ${percentage}%`);
+
+    doc.moveDown(1);
+
+    /* ================= TABLE HEADER ================= */
+    doc.fontSize(14).text("Daily Records", { underline: true });
+    doc.moveDown(0.5);
+
+    const tableTop = doc.y;
+    const dateX = 60;
+    const statusX = 300;
+
+    doc.fontSize(12).text("Date", dateX, tableTop);
+    doc.text("Status", statusX, tableTop);
+
+    doc.moveDown();
+
+    /* ================= TABLE ROWS ================= */
+    let yPosition = doc.y;
+
+    records.forEach((record) => {
+      const formattedDate = new Date(
+        record.date
+      ).toLocaleDateString();
+
+      doc.text(formattedDate, dateX, yPosition);
+
+      doc.text(
+        record.status,
+        statusX,
+        yPosition,
+        {
+          width: 100,
+          align: "left"
+        }
       );
+
+      yPosition += 20;
     });
 
     doc.end();
 
   } catch (err) {
+    console.error("PDF Generation Error:", err);
     res.status(500).json({ error: err.message });
   }
 };
