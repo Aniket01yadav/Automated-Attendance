@@ -324,9 +324,13 @@ export const getMonthlyAttendanceReport = async (req, res) => {
     doc.moveDown(4);
 
     /* ================== FOOTER ================== */
-    doc.moveTo(50, doc.page.height - 50)
-      .lineTo(doc.page.width - 50, doc.page.height - 50)
+    doc.moveDown(3);
+
+    doc.moveTo(50, doc.y)
+      .lineTo(550, doc.y)
       .stroke();
+
+    doc.moveDown(1);
 
     const istDate = new Date().toLocaleString("en-IN", {
       timeZone: "Asia/Kolkata",
@@ -339,23 +343,15 @@ export const getMonthlyAttendanceReport = async (req, res) => {
       hour12: true
     });
 
-    const footerY = doc.page.height - 40;
-
-    // Left side
     doc.fontSize(9).text(
-      `Generated on: ${istDate} (IST)`,
-      50,
-      footerY,
-      { align: "left" }
+      `Generated on: ${istDate} (IST)`
     );
 
-    // Right side
     doc.text(
       "This is a system generated document.",
-      50,
-      footerY,
       { align: "right" }
     );
+
 
     doc.end();
   } catch (err) {
