@@ -184,16 +184,13 @@ export const getMonthlyAttendanceReport = async (req, res) => {
     const endDate = new Date(year, month, 0);
     endDate.setHours(23, 59, 59, 999);
 
-    // Fetch student
     const student = await Student.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Fetch class
     const classData = await Class.findById(student.classId);
 
-    // Fetch attendance
     const records = await Attendance.find({
       studentId,
       schoolId: resolvedSchoolId,
@@ -208,7 +205,6 @@ export const getMonthlyAttendanceReport = async (req, res) => {
         ? ((presentDays / totalDays) * 100).toFixed(2)
         : 0;
 
-    // Create PDF
     const doc = new PDFDocument({ margin: 50 });
 
     res.setHeader(
@@ -219,83 +215,134 @@ export const getMonthlyAttendanceReport = async (req, res) => {
 
     doc.pipe(res);
 
-    /* ================= HEADER ================= */
+    /* ================== HEADER ================== */
     doc
-      .fontSize(18)
+      .fontSize(20)
       .text(req.user.schoolName || "School Name", {
-        align: "center"
+        align: "center",
       });
 
     doc.moveDown(0.5);
 
     doc
       .fontSize(16)
-      .text("Monthly Attendance Report", {
-        align: "center"
+      .text("MONTHLY ATTENDANCE CERTIFICATE", {
+        align: "center",
       });
 
     doc.moveDown(1);
 
-    /* ================= STUDENT INFO ================= */
-    doc.fontSize(12);
-    doc.text(`Student Name: ${student.name}`);
-    doc.text(`Roll Number: ${student.rollNo}`);
-    doc.text(
-      `Class: ${classData?.className || ""} ${classData?.section || ""}`
-    );
-    doc.text(`Month: ${month}/${year}`);
-    doc.moveDown();
-
-    /* ================= SUMMARY ================= */
-    doc.fontSize(14).text("Summary", { underline: true });
-    doc.moveDown(0.5);
-
-    doc.fontSize(12);
-    doc.text(`Total Days: ${totalDays}`);
-    doc.text(`Present: ${presentDays}`);
-    doc.text(`Absent: ${absentDays}`);
-    doc.text(`Attendance Percentage: ${percentage}%`);
+    doc.moveTo(50, doc.y)
+      .lineTo(550, doc.y)
+      .stroke();
 
     doc.moveDown(1);
 
-    /* ================= TABLE HEADER ================= */
-    doc.fontSize(14).text("Daily Records", { underline: true });
+    /* ================== STUDENT INFO ================== */
+    doc.fontSize(12);
+    doc.text(`Student Name : ${student.name}`);
+    doc.text(`Roll Number  : ${student.rollNo}`);
+    doc.text(
+      `Class        : ${classData?.className || ""} ${classData?.section || ""}`
+    );
+    doc.text(`Month        : ${month}/${year}`);
+
+    doc.moveDown(1);
+
+    /* ================== SUMMARY ================== */
+    doc.fontSize(14).text("Attendance Summary", { underline: true });
+    doc.moveDown(0.5);
+
+    doc.fontSize(12);
+    doc.text(`Total Working Days : ${totalDays}`);
+    doc.text(`Days Present       : ${presentDays}`);
+    doc.text(`Days Absent        : ${absentDays}`);
+    doc.text(`Attendance %       : ${percentage}%`);
+
+    doc.moveDown(1);
+
+    /* ================== TABLE ================== */
+    doc.fontSize(14).text("Detailed Attendance Record", {
+      underline: true,
+    });
+
     doc.moveDown(0.5);
 
     const tableTop = doc.y;
     const dateX = 60;
-    const statusX = 300;
+    const statusX = 350;
 
-    doc.fontSize(12).text("Date", dateX, tableTop);
-    doc.text("Status", statusX, tableTop);
+    // Table Header
+    doc.rect(50, tableTop, 500, 25).stroke();
+    doc.text("Date", dateX, tableTop + 7);
+    doc.text("Status", statusX, tableTop + 7);
 
-    doc.moveDown();
+    let yPosition = tableTop + 25;
 
-    /* ================= TABLE ROWS ================= */
-    let yPosition = doc.y;
-
+    // Table Rows
     records.forEach((record) => {
+      doc.rect(50, yPosition, 500, 25).stroke();
+
       const formattedDate = new Date(
         record.date
       ).toLocaleDateString();
 
-      doc.text(formattedDate, dateX, yPosition);
+      doc.text(formattedDate, dateX, yPosition + 7);
+      doc.text(record.status, statusX, yPosition + 7);
 
-      doc.text(
-        record.status,
-        statusX,
-        yPosition,
-        {
-          width: 100,
-          align: "left"
-        }
-      );
-
-      yPosition += 20;
+      yPosition += 25;
     });
 
-    doc.end();
+    doc.moveDown(2);
 
+    /* ================== CERTIFICATE TEXT ================== */
+    doc.moveTo(50, yPosition + 10)
+      .lineTo(550, yPosition + 10)
+      .stroke();
+
+    doc.moveDown(2);
+
+    doc.fontSize(11).text(
+      `This is to certify that ${student.name} of class ${classData?.className || ""
+      } has maintained an attendance of ${percentage}% for the month ${month}/${year}.`,
+      {
+        align: "justify",
+      }
+    );
+
+    doc.moveDown(3);
+
+    /* ================== SIGNATURE BLOCK ================== */
+    const signatureY = doc.y;
+
+    doc.text("__________________________", 60, signatureY);
+    doc.text("Class Teacher", 60, signatureY + 15);
+
+    doc.text("__________________________", 350, signatureY);
+    doc.text("Principal", 350, signatureY + 15);
+
+    doc.moveDown(4);
+
+    /* ================== FOOTER ================== */
+    doc.moveTo(50, 750)
+      .lineTo(550, 750)
+      .stroke();
+
+    doc.fontSize(9).text(
+      `Generated on: ${new Date().toLocaleString()}`,
+      50,
+      760,
+      { align: "left" }
+    );
+
+    doc.text(
+      "This is a system generated document.",
+      50,
+      760,
+      { align: "right" }
+    );
+
+    doc.end();
   } catch (err) {
     console.error("PDF Generation Error:", err);
     res.status(500).json({ error: err.message });
