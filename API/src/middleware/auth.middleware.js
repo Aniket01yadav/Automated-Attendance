@@ -29,10 +29,23 @@ export const protect = async (req, res, next) => {
 
 
 export const allowPrincipal = (req, res, next) => {
-    if (req.user.role !== "Principal") {
-        return res.status(403).json({ error: "Access denied - Principal only" });
-    }
-    next();
+    return allowRoles("Principal", "Admin")(req, res, next);
+};
+
+export const allowRoles = (...roles) => {
+    return (req, res, next) => {
+        const userRole = String(req.user?.role || "").toLowerCase();
+        const allowed = roles.map((r) => String(r).toLowerCase());
+
+        // Principal is treated as the admin role in this project.
+        const mappedUserRole = userRole === "principal" ? "admin" : userRole;
+
+        if (allowed.includes(userRole) || allowed.includes(mappedUserRole)) {
+            return next();
+        }
+
+        return res.status(403).json({ error: "Access denied - insufficient role" });
+    };
 };
 
 

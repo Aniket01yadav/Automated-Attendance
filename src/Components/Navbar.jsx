@@ -1,8 +1,28 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(!!localStorage.getItem('token'));
+    const navigate = useNavigate();
+    const location = useLocation();
+
+    useEffect(() => {
+        setIsLoggedIn(!!localStorage.getItem('token'));
+    }, [location.pathname]);
+
+    useEffect(() => {
+        const syncAuthState = () => setIsLoggedIn(!!localStorage.getItem('token'));
+        window.addEventListener('storage', syncAuthState);
+        return () => window.removeEventListener('storage', syncAuthState);
+    }, []);
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+        setMenuOpen(false);
+        navigate('/login');
+    };
 
     return (
         <>
@@ -52,9 +72,18 @@ const Navbar = () => {
                                     </Link>
                                 </li>
                                 <li>
-                                    <Link to="/login" className="text-white px-3 py-2 rounded-md text-18 font-medium bg-[#0e86d4] hover:bg-blue-700">
-                                        Login/Registration
-                                    </Link>
+                                    {isLoggedIn ? (
+                                        <button
+                                            onClick={handleLogout}
+                                            className="text-white px-3 py-2 rounded-md text-18 font-medium bg-red-600 hover:bg-red-700"
+                                        >
+                                            Logout
+                                        </button>
+                                    ) : (
+                                        <Link to="/login" className="text-white px-3 py-2 rounded-md text-18 font-medium bg-[#0e86d4] hover:bg-blue-700">
+                                            Login/Registration
+                                        </Link>
+                                    )}
                                 </li>
                             </ul>
                         </div>
@@ -73,9 +102,22 @@ const Navbar = () => {
                         <Link to="/contact" className="block text-white px-3 py-2 rounded-md text-base font-medium hover:bg-blue-700">
                             Contact
                         </Link>
-                        <Link to="/attendance" className="block text-white px-3 py-2 rounded-md text-base font-medium bg-[#0e86d4] hover:bg-blue-700">
-                            Login/Registration
-                        </Link>
+                        {isLoggedIn ? (
+                            <button
+                                onClick={handleLogout}
+                                className="block w-full text-left text-white px-3 py-2 rounded-md text-base font-medium bg-red-600 hover:bg-red-700"
+                            >
+                                Logout
+                            </button>
+                        ) : (
+                            <Link
+                                to="/login"
+                                onClick={() => setMenuOpen(false)}
+                                className="block text-white px-3 py-2 rounded-md text-base font-medium bg-[#0e86d4] hover:bg-blue-700"
+                            >
+                                Login/Registration
+                            </Link>
+                        )}
                     </div>
                 )}
             </nav>

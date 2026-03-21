@@ -122,7 +122,7 @@ const AttendancePage = () => {
   };
 
   // ================= CHANGE PASSWORD (with AES encryption) =================
-    const handlePasswordUpdate = async () => {
+  const handlePasswordUpdate = async () => {
     const token = localStorage.getItem("token");
 
     if (!passwords.oldPassword || !passwords.newPassword) {
@@ -370,17 +370,33 @@ const AttendancePage = () => {
         </div>
       </div>
 
-      {/* Manage Teachers button (Principal only) */}
-      {isPrincipal && (
-        <div className="w-full max-w-5xl flex justify-end mb-4">
+      {/* Teacher management quick actions */}
+      <div className="w-full max-w-5xl flex justify-end mb-4 gap-2">
+        {!isPrincipal && (
           <button
-            className="bg-purple-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-purple-700"
-            onClick={() => navigate("/manage-teachers")}
+            className="bg-indigo-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-indigo-700"
+            onClick={() => navigate("/teacher-dashboard")}
           >
-            Manage Teachers
+            Teacher Attendance (Dashboard)
           </button>
-        </div>
-      )}
+        )}
+        {isPrincipal && (
+          <>
+            <button
+              className="bg-purple-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-purple-700"
+              onClick={() => navigate("/manage-teachers")}
+            >
+              Teacher Management
+            </button>
+            <button
+              className="bg-sky-600 text-white px-5 py-2 rounded-lg shadow-md hover:bg-sky-700"
+              onClick={() => navigate("/admin/teacher-attendance")}
+            >
+              Teacher Attendance
+            </button>
+          </>
+        )}
+      </div>
 
       {/* SEARCH + FILTER JUST ABOVE HEADING */}
       <div className="w-full max-w-5xl flex flex-col gap-3 mb-4">

@@ -1,8 +1,8 @@
 import express from "express";
 import protect from "../middleware/auth.middleware.js";
-import { getMonthlyAttendanceReport } from "../controllers/attendance.controller.js";
-
 import {
+  getMonthlyAttendanceReport,
+  getMonthlyClassAttendanceReport,
   toggleAttendance,
   getAttendanceByClass,
   getAttendanceByStudent,
@@ -30,6 +30,13 @@ router.get(
   "/class/:classId",
   protect,
   getAttendanceByClass
+);
+
+/* class monthly CSV report */
+router.get(
+  "/class/:classId/monthly-report",
+  protect,
+  getMonthlyClassAttendanceReport
 );
 
 /* monthly PDF report */

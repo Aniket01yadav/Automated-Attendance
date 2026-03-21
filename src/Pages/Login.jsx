@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import toast, { Toaster } from "react-hot-toast";
+import API_BASE_URL from "../utils/apiBaseUrl";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ const Login = () => {
     const encryptedPassword = password;
 
     try {
-      const res = await axios.post("https://inclass-dnhc.onrender.com/api/auth/login", {
+      const res = await axios.post(`${API_BASE_URL}/api/auth/login`, {
         email,
         password: encryptedPassword,
       });

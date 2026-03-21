@@ -37,6 +37,11 @@ const AddStudentPage = () => {
   const [openScanner, setOpenScanner] = useState(false);
   const [scanClassId, setScanClassId] = useState(null);
 
+  const initialMonth = new Date().getMonth() + 1;
+  const initialYear = new Date().getFullYear();
+  const [reportMonth, setReportMonth] = useState(initialMonth);
+  const [reportYear, setReportYear] = useState(initialYear);
+
 
 
 
@@ -113,7 +118,8 @@ const AddStudentPage = () => {
       const studentsWithAttendance = (studentsData || []).map((student) => {
         const sid = student._id || student.id || '';
         const status = attendanceMap.get(String(sid));
-        return { ...student, todayStatus: status || 'Absent' };
+        // Show "Not Scanned" if no attendance record exists, otherwise show the status
+        return { ...student, todayStatus: status || 'Not Scanned' };
       });
 
       setStudents(studentsWithAttendance);
@@ -277,7 +283,7 @@ const AddStudentPage = () => {
 
     // Validate all fields
     if (!formData.name || !formData.fatherName || !formData.dateOfBirth ||
-      !formData.address || !formData.contact || !formData.email || !formData.rollNo) {
+      !formData.address || !formData.contact || !formData.rollNo) {
       toast.error('All fields are required!');
       return;
     }
@@ -389,6 +395,38 @@ const AddStudentPage = () => {
     } catch (err) {
       console.error("Attendance toggle error:", err);
       toast.error(err.response?.data?.error || "Failed to update attendance!");
+    }
+  };
+
+  // ================= DOWNLOAD CLASS MONTHLY EXCEL =================
+  const downloadClassMonthlyReport = async () => {
+    if (!activeClassId) {
+      return toast.error("Select a class first");
+    }
+
+    try {
+      const response = await axios.get(
+        `https://inclass-dnhc.onrender.com/api/attendance/class/${activeClassId}/monthly-report?month=${reportMonth}&year=${reportYear}`,
+        {
+          responseType: "blob",
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+
+      const blob = new Blob([response.data], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `class_${activeClassId}_attendance_${reportMonth}_${reportYear}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Monthly class report downloaded");
+    } catch (err) {
+      console.error("Class report download error:", err);
+      toast.error(err.response?.data?.error || "Failed to download class report!");
     }
   };
 
@@ -633,7 +671,7 @@ const AddStudentPage = () => {
 
       {/* STATS - Only show if class is selected */}
       {activeClassId && (
-        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-white/15 border border-white/20 rounded-2xl p-4 text-white backdrop-blur-md shadow-md">
             <p className="text-sm text-cyan-100">Total Students</p>
             <p className="text-2xl font-bold mt-1">{students.length}</p>
@@ -647,7 +685,13 @@ const AddStudentPage = () => {
           <div className="bg-white/15 border border-white/20 rounded-2xl p-4 text-white backdrop-blur-md shadow-md">
             <p className="text-sm text-cyan-100">Absent Today</p>
             <p className="text-2xl font-bold mt-1 text-red-300">
-              {students.filter(s => s.todayStatus === 'Absent' || !s.todayStatus).length}
+              {students.filter(s => s.todayStatus === 'Absent').length}
+            </p>
+          </div>
+          <div className="bg-white/15 border border-white/20 rounded-2xl p-4 text-white backdrop-blur-md shadow-md">
+            <p className="text-sm text-cyan-100">Not Scanned</p>
+            <p className="text-2xl font-bold mt-1 text-gray-300">
+              {students.filter(s => s.todayStatus === 'Not Scanned').length}
             </p>
           </div>
         </div>
@@ -655,14 +699,47 @@ const AddStudentPage = () => {
 
       {/* SEARCH & SORT - Only show if class is selected and has students */}
       {activeClassId && students.length > 0 && (
-        <div className="w-full max-w-5xl flex flex-col gap-3 mb-6">
+        <div className="w-full max-w-5xl flex flex-wrap items-center justify-between gap-3 mb-6">
           <motion.input
             whileFocus={{ scale: 1.01 }}
             type="text"
             placeholder="Search by name, roll no, or email..."
-            className="p-3 rounded-xl border border-gray-300 outline-none text-white shadow-sm"
+            className="flex-1 min-w-[240px] p-3 rounded-xl border border-gray-300 outline-none text-white shadow-sm"
             onChange={(e) => handleSearch(e.target.value)}
           />
+
+          <div className="flex items-center gap-2 bg-white/5 p-2 rounded-xl">
+            <div className="flex items-center gap-1">
+              <label className="text-white/80">Month</label>
+              <input
+                type="number"
+                min={1}
+                max={12}
+                value={reportMonth}
+                onChange={(e) => setReportMonth(Number(e.target.value))}
+                className="w-16 px-2 py-1 rounded bg-white text-black"
+              />
+            </div>
+            <div className="flex items-center gap-1">
+              <label className="text-white/80">Year</label>
+              <input
+                type="number"
+                min={2000}
+                max={2100}
+                value={reportYear}
+                onChange={(e) => setReportYear(Number(e.target.value))}
+                className="w-20 px-2 py-1 rounded bg-white text-black"
+              />
+            </div>
+            <button
+              onClick={downloadClassMonthlyReport}
+              className="bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded font-semibold"
+            >
+              Download Class Monthly Excel
+            </button>
+          </div>
+
+          <div className="w-full" />
           <div className="flex flex-wrap gap-2 text-sm">
             <motion.button
               whileHover={{ scale: 1.05, y: -1 }}
@@ -730,13 +807,15 @@ const AddStudentPage = () => {
 
                 <div className="flex flex-wrap gap-2">
                   <button
-                    onClick={() => toggleAttendance(student._id, student.todayStatus || 'Absent')}
+                    onClick={() => toggleAttendance(student._id)}
                     className={`px-4 py-2 rounded-lg font-semibold transition ${student.todayStatus === 'Present'
                       ? 'bg-green-500 text-white hover:bg-green-600'
-                      : 'bg-red-500 text-white hover:bg-red-600'
+                      : student.todayStatus === 'Absent'
+                        ? 'bg-red-500 text-white hover:bg-red-600'
+                        : 'bg-gray-400 text-white hover:bg-gray-500'
                       }`}
                   >
-                    {student.todayStatus === 'Present' ? 'Present' : 'Absent'}
+                    {student.todayStatus === 'Present' ? 'Present' : student.todayStatus === 'Absent' ? 'Absent' : 'Not Scanned'}
                   </button>
                   <button
                     onClick={() => {
@@ -889,9 +968,8 @@ const AddStudentPage = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="Email Address"
+                    placeholder="Email Address (Optional)"
                     className="border-2 border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-blue-500"
-                    required
                   />
 
                   <button
@@ -969,9 +1047,11 @@ const AddStudentPage = () => {
                   </div>
                   <div className="flex pt-2">
                     <span className="font-semibold text-gray-700 w-36">Today's Status:</span>
-                    <span className={`font-bold flex-1 ${selectedStudent.todayStatus === 'Present' ? 'text-green-600' : 'text-red-600'
+                    <span className={`font-bold flex-1 ${selectedStudent.todayStatus === 'Present' ? 'text-green-600' :
+                      selectedStudent.todayStatus === 'Absent' ? 'text-red-600' :
+                        'text-gray-600'
                       }`}>
-                      {selectedStudent.todayStatus || 'Absent'}
+                      {selectedStudent.todayStatus || 'Not Scanned'}
                     </span>
                   </div>
                 </div>

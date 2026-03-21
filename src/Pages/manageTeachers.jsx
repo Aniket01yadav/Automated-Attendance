@@ -130,8 +130,8 @@ const ManageTeachers = () => {
               <strong>Status:</strong>
               <span
                 className={`ml-2 px-2 py-1 rounded text-xs ${teacher.status === "Approved"
-                    ? "bg-green-500"
-                    : "bg-yellow-400 text-black"
+                  ? "bg-green-500"
+                  : "bg-yellow-400 text-black"
                   }`}
               >
                 {teacher.status}

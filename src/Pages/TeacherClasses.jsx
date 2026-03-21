@@ -199,8 +199,8 @@ const TeacherClasses = () => {
             onClick={goNext}
             disabled={page === totalPages}
             className={`px-4 py-2 rounded-lg font-semibold ${page === totalPages
-                ? "bg-gray-400/60 cursor-not-allowed"
-                : "bg-white text-blue-700"
+              ? "bg-gray-400/60 cursor-not-allowed"
+              : "bg-white text-blue-700"
               }`}
           >
             Next
