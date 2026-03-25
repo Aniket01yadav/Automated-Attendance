@@ -1,16 +1,99 @@
-# React + Vite
+🚀 Automated Attendance System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An AI-powered Attendance Management System designed to eliminate manual attendance, reduce proxy entries, and improve efficiency using Face Recognition and Role-Based Access Control.
 
-Currently, two official plugins are available:
+📌 Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Traditional attendance systems are:
 
-## React Compiler
+Time-consuming
+Error-prone
+Vulnerable to proxy attendance
 
-The React Compiler is not enabled on this template. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+This project solves these problems by integrating:
 
-## Expanding the ESLint configuration
+🤖 Face Recognition
+🔐 Secure Authentication (JWT)
+👨‍🏫 Teacher & Student Management
+📊 Real-time Analytics Dashboard
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+🎯 Key Features
+
+👨‍🎓 Student Attendance
+Face recognition-based attendance marking
+Real-time detection and validation
+Prevents proxy attendance
+
+👨‍🏫 Teacher Attendance
+Attendance marked via Principal/Admin device
+Face recognition-based verification
+Check-in / Check-out system
+Late arrival detection
+Working hours calculation
+15-minute validation rule for checkout
+
+🧑‍💼 Admin Control
+Full system access
+Manage students, teachers, and classes
+Configure attendance settings
+View system analytics
+
+📊 Dashboard & Analytics
+Attendance trends
+Monthly reports
+Present / Absent / Late statistics
+Visual charts for better insights
+
+📄 Reports & Export
+Generate attendance reports
+Download PDF summaries
+
+🔐 Authentication & Security
+JWT-based authentication
+Role-based access (Admin, Teacher, Student)
+Protected API routes
+
+🧠 Tech Stack
+Frontend
+React (Vite)
+Axios
+Recharts (for charts)
+Backend
+Node.js
+Express.js
+Database
+MongoDB (Mongoose)
+AI / Face Recognition
+Face detection & recognition logic (custom integration)
+
+🏗️ System Architecture
+Frontend (React)
+        ↓
+REST API (Express.js)
+        ↓
+Authentication (JWT Middleware)
+        ↓
+Face Recognition Engine
+        ↓
+MongoDB Database
+
+🔄 Attendance Flow
+Student Attendance
+Student appears in front of camera
+Face is detected and verified
+Attendance is marked instantly
+Teacher Attendance
+Admin opens teacher scanner
+Teacher face is scanned
+System marks:
+Check-In OR Check-Out
+Calculates:
+Late status
+Working hours
+
+👨‍💻 Author
+
+Abhinash Kumar
+
+Final Year Engineering Student
+Aspiring Software Developer
