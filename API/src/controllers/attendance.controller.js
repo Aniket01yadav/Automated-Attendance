@@ -72,9 +72,16 @@ export const toggleAttendance = async (req, res) => {
     let isFirstPresent = false;
 
     if (existing) {
-      // If changing from Absent to Present, check if this is the first present
+      // If changing from Absent to Present, only mark others absent when
+      // there are no other "Present" records for this class/day.
       if (existing.status === "Absent") {
-        isFirstPresent = true;
+        const existingPresents = await Attendance.countDocuments({
+          classId,
+          schoolId: resolvedSchoolId,
+          date: day,
+          status: "Present",
+        });
+        isFirstPresent = existingPresents === 0;
       }
       existing.status =
         existing.status === "Present" ? "Absent" : "Present";
