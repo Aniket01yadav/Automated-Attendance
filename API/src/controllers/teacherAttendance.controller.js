@@ -16,7 +16,6 @@ import {
 const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 const MIN_CHECKOUT_GAP_MS = 15 * 60 * 1000;
 const TIME_24H_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/;
-const SCHOOL_TIME_ZONE = process.env.SCHOOL_TIME_ZONE || "Asia/Kolkata";
 const DEFAULT_ATTENDANCE_SETTINGS = Object.freeze({
   checkInTime: "09:00",
   checkOutTime: "16:00",
@@ -154,25 +153,6 @@ const parseTimeToMinutes = (timeText) => {
   return (hours * 60) + minutes;
 };
 
-const getTimePartsInTimeZone = (date, timeZone = SCHOOL_TIME_ZONE) => {
-  const parts = new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hour12: false,
-    hour: "2-digit",
-    minute: "2-digit",
-  }).formatToParts(date);
-
-  const hour = Number(parts.find((p) => p.type === "hour")?.value || 0);
-  const minute = Number(parts.find((p) => p.type === "minute")?.value || 0);
-
-  return { hour, minute };
-};
-
-const getMinutesInTimeZone = (date, timeZone = SCHOOL_TIME_ZONE) => {
-  const { hour, minute } = getTimePartsInTimeZone(date, timeZone);
-  return (hour * 60) + minute;
-};
-
 const getAttendanceSettingsForSchool = async (schoolName) => {
   const settings = await TeacherAttendanceSettings.findOne({
     schoolName,
@@ -195,6 +175,17 @@ const getAttendanceSettingsForSchool = async (schoolName) => {
     ),
     gracePeriod: normalizeGracePeriod(settings.gracePeriod, 0),
   };
+};
+
+const createTimeForDate = (inputDate, timeText, extraMinutes = 0) => {
+  const date = normalizeDayStart(inputDate);
+  const safeTime = normalizeTimeValue(
+    timeText,
+    DEFAULT_ATTENDANCE_SETTINGS.checkInTime
+  );
+  const [hours, minutes] = safeTime.split(":").map(Number);
+  date.setHours(hours, minutes + extraMinutes, 0, 0);
+  return date;
 };
 
 const getHalfDayThresholdHours = (settings) => {
@@ -430,10 +421,12 @@ export const scanTeacherAttendance = async (req, res) => {
     }
 
     if (!attendance) {
-      const currentMinutes = getMinutesInTimeZone(now);
-      const checkInDeadlineMinutes =
-        parseTimeToMinutes(settings.checkInTime) + settings.gracePeriod;
-      const status = currentMinutes <= checkInDeadlineMinutes ? "On Time" : "Late";
+      const checkInDeadline = createTimeForDate(
+        now,
+        settings.checkInTime,
+        settings.gracePeriod
+      );
+      const status = now <= checkInDeadline ? "On Time" : "Late";
 
       attendance = await TeacherAttendance.create({
         teacherId: teacher._id,
@@ -470,12 +463,13 @@ export const scanTeacherAttendance = async (req, res) => {
     }
 
     if (!attendance.checkIn) {
-      const currentMinutes = getMinutesInTimeZone(now);
-      const checkInDeadlineMinutes =
-        parseTimeToMinutes(settings.checkInTime) + settings.gracePeriod;
+      const checkInDeadline = createTimeForDate(
+        now,
+        settings.checkInTime,
+        settings.gracePeriod
+      );
       attendance.checkIn = now;
-      attendance.status =
-        currentMinutes <= checkInDeadlineMinutes ? "On Time" : "Late";
+      attendance.status = now <= checkInDeadline ? "On Time" : "Late";
       attendance.markedBy = req.user._id;
       await attendance.save();
 
@@ -514,14 +508,10 @@ export const scanTeacherAttendance = async (req, res) => {
 
     attendance.checkOut = now;
     attendance.totalHours = calculateHours(attendance.checkIn, now);
-    const currentMinutes = getMinutesInTimeZone(now);
-    const scheduledCheckOutMinutes = parseTimeToMinutes(settings.checkOutTime);
+    const scheduledCheckOut = createTimeForDate(now, settings.checkOutTime);
     const halfDayThreshold = getHalfDayThresholdHours(settings);
 
-    if (
-      currentMinutes < scheduledCheckOutMinutes ||
-      attendance.totalHours < halfDayThreshold
-    ) {
+    if (now < scheduledCheckOut || attendance.totalHours < halfDayThreshold) {
       attendance.status = "Half Day";
     }
     attendance.markedBy = req.user._id;
